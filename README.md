@@ -1,8 +1,9 @@
 # 🛡️ Home SOC Lab — Purple Team SIEM Environment
-
+![GitHub](https://img.shields.io/badge/status-in_progress-orange)
+![License](https://img.shields.io/badge/license-MIT-blue)
 > A fully virtualized Security Operations Center (SOC) lab built from scratch to learn, demonstrate, and operate end-to-end detection capabilities — from log ingestion to incident response, with realistic attack surfaces and honeypots.
 
-**Status:** 🚧 In progress | **Started:** May 2026 | **Author:** Anass CHAMMAMI — Master 1 Cybersecurity, UGA IM2AG
+**Started:** May 2026 | **Author:** Anass CHAMMAMI — Master 1 Cybersecurity, UGA IM2AG
 
 ---
 
@@ -33,19 +34,22 @@ The goal is to **build, operate and document a complete SOC environment**, mirro
 | VLAN 40     | Wazuh manager, Elasticsearch, Kibana, Suricata IDS           | SOC stack                            |
 | VLAN 50     | Analyst workstation, TheHive, MISP (optional)                | Investigation and case management    |
 
+> 📐 **Detailed architecture** — see [docs/01-architecture.md](docs/01-architecture.md)
+> for IP plan, VLAN breakdown, software stack, flows matrix, and design rationale.
+
 ## 🧰 Tech stack
 
-**Hypervisor:** VMware Workstation Pro 17
-**Firewall / Router:** pfSense CE
-**SIEM / XDR:** Wazuh 4.x + Elasticsearch + Kibana
-**Network IDS:** Suricata
-**Endpoint visibility:** Sysmon (with SwiftOnSecurity config) + Wazuh agent
-**Vulnerable targets:** DVWA (web), hardened-down Ubuntu (SSH)
-**Honeypots:** Cowrie (SSH deception alongside the real SSH target)
-**Adversary emulation:** Atomic Red Team, MITRE Caldera, Hydra, Impacket, BloodHound
-**Case management (bonus):** TheHive 5
-**Threat intel (bonus):** MISP
-**SOAR (bonus):** Shuffle
+**Hypervisor:** VMware Workstation Pro 25H2 <br>
+**Firewall / Router:** pfSense CE<br>
+**SIEM / XDR:** Wazuh 4.14.5 + Elasticsearch + Kibana <br>
+**Network IDS:** Suricata 8.0.4<br>
+**Endpoint visibility:** Sysmon (with SwiftOnSecurity config) + Wazuh agent<br>
+**Vulnerable targets:** DVWA (web), hardened-down Ubuntu (SSH)<br>
+**Honeypots:** Cowrie (SSH deception alongside the real SSH target)<br>
+**Adversary emulation:** Atomic Red Team, MITRE Caldera, Hydra, Impacket, BloodHound<br>
+**Case management (bonus):** TheHive 5<br>
+**Threat intel (bonus):** MISP<br>
+**SOAR (bonus):** Shuffle<br>
 
 ## 🎯 Detection coverage (MITRE ATT&CK)
 
