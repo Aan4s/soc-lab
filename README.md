@@ -23,18 +23,7 @@ The goal is to **build, operate and document a complete SOC environment**, mirro
 
 ## 🏗️ Architecture overview
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                  pfSense (firewall / inter-VLAN router)             │
-└─────────────────────────────────────────────────────────────────────┘
-        │           │            │            │            │
-   ┌────▼───┐  ┌────▼────┐  ┌───▼────┐  ┌────▼────┐  ┌────▼────┐
-   │ VLAN10 │  │ VLAN20  │  │ VLAN30 │  │ VLAN40  │  │ VLAN50  │
-   │ Attack │  │  Corp.  │  │  DMZ   │  │  SOC    │  │ Analyst │
-   │ (Kali) │  │ (AD+PC) │  │(Web/   │  │(Wazuh)  │  │  (Kib.) │
-   │        │  │         │  │ SSH/HP)│  │         │  │         │
-   └────────┘  └─────────┘  └────────┘  └─────────┘  └─────────┘
-```
+![SOC Lab Architecture](diagrams/soc-lab-architecture.png)
 
 | Zone        | Components                                                   | Purpose                              |
 |-------------|--------------------------------------------------------------|--------------------------------------|
@@ -113,7 +102,8 @@ soc-lab/
 ├── scripts/
 │   ├── deploy/                        # automation scripts (PowerShell / Bash)
 │   └── attack-simulation/             # attack scripts (Atomic / custom)
-├── diagrams/                          # architecture diagrams (drawio / png)
+├── diagrams/                          # architecture diagrams 
+│   └── soc-lab-architecture.png
 └── reports/
     ├── tech-study-video-script.md     # UE deliverable: tech video script
     └── final-report.md                # 6-page final report
