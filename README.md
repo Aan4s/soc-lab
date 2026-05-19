@@ -92,11 +92,12 @@ soc-lab/
 ├── README.md                          # this file
 ├── docs/
 │   ├── 01-architecture.md             # detailed architecture and IP plan
-│   ├── 02-installation/               # step-by-step setup per component
-│   ├── 03-detection-rules.md          # all custom detection rules
-│   ├── 04-attack-scenarios/           # 8 scenarios, one report each
-│   ├── 05-dashboards.md               # Kibana SOC dashboard exports
-│   ├── 06-playbooks/                  # IR playbooks for each detection
+│   ├── 02-detection-strategy.md       # SOC detection philosophy and MITRE coverage
+│   ├── 03-installation/               # step-by-step setup per component
+│   ├── 04-detection-rules.md          # all custom detection rules
+│   ├── 05-attack-scenarios/           # 8 scenarios, one report each
+│   ├── 06-dashboards.md               # Kibana SOC dashboard exports
+│   ├── 07-playbooks/                  # IR playbooks for each detection
 │   └── journal.md                     # daily logbook
 ├── configs/
 │   ├── pfsense/                       # firewall rules, VLAN config
@@ -109,7 +110,6 @@ soc-lab/
 ├── diagrams/                          # architecture diagrams 
 │   └── soc-lab-architecture.png
 └── reports/
-    ├── tech-study-video-script.md     # UE deliverable: tech video script
     └── final-report.md                # 6-page final report
 ```
 
