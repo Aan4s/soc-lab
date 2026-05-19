@@ -1,0 +1,100 @@
+# ===========================
+# Evidence and sensitive data
+# ===========================
+evidence/
+*.pcap
+*.pcapng
+*.hashes
+*.kirbi
+*.ccache
+secrets/
+credentials/
+captured/
+dumps/
+
+# Wordlists and crack results
+*.cracked
+*.hash
+hashcat-*.potfile
+
+# ========
+# OS files
+# ========
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ====
+# IDE
+# ====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+.project
+.settings/
+
+# ========================
+# Logs and temporary files
+# ========================
+*.log
+*.tmp
+*.temp
+logs/
+tmp/
+
+# ========
+# VM files
+# ========
+*.vmdk
+*.vmx
+*.vmem
+*.vmsd
+*.vmsn
+*.vmss
+*.iso
+*.ova
+*.ovf
+*.qcow2
+
+# ========
+# Archives
+# ========
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ====================
+# Python (for scripts)
+# ====================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# =================
+# Sensitive configs
+# =================
+*.pem
+*.key
+*.crt
+id_rsa
+id_ed25519
+*.ovpn
+.env
+.env.local
+config.local.*
