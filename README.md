@@ -1,6 +1,8 @@
 # 🛡️ Home SOC Lab — Purple Team SIEM Environment
 ![GitHub](https://img.shields.io/badge/status-in_progress-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+![Hypervisor](https://img.shields.io/badge/hypervisor-Proxmox%20VE%209.1-orange)
+![SIEM](https://img.shields.io/badge/SIEM-Wazuh%204.x-purple)
 > A fully virtualized Security Operations Center (SOC) lab built from scratch to learn, demonstrate, and operate end-to-end detection capabilities — from log ingestion to incident response, with realistic attack surfaces and honeypots.
 
 **Started:** May 2026 | **Author:** Anass CHAMMAMI — Master 1 Cybersecurity, UGA IM2AG
@@ -28,24 +30,24 @@ The goal is to **build, operate and document a complete SOC environment**, mirro
 
 | Zone        | Components                                                   | Purpose                              |
 |-------------|--------------------------------------------------------------|--------------------------------------|
-| VLAN 10     | Kali Linux, Caldera, Atomic Red Team                         | Adversary emulation                  |
+| VLAN 10     | Kali Linux (10.10.10.51) , Caldera, Atomic Red Team          | Adversary emulation                  |
 | VLAN 20     | Windows Server 2022 (AD DC), 2× Windows 10 clients           | Corporate environment (target)       |
-| VLAN 30     | DVWA, vulnerable Ubuntu (SSH), Cowrie honeypot               | DMZ — exposed services + deception   |
-| VLAN 40     | Wazuh manager, Elasticsearch, Kibana, Suricata IDS           | SOC stack                            |
-| VLAN 50     | Analyst workstation, TheHive, MISP (optional)                | Investigation and case management    |
+| VLAN 30     | DVWA (10.10.30.50), vulnerable Ubuntu (SSH), Cowrie honeypot | DMZ, exposed services + deception    |
+| VLAN 40     | Wazuh manager (10.10.40.50), Elasticsearch, Kibana           | SOC stack                            |
+| VLAN 50     | Analyst workstation (10.10.50.50), TheHive, MISP (optional)  | Investigation and case management    |
 
 > 📐 **Detailed architecture** — see [docs/01-architecture.md](docs/01-architecture.md)
 > for IP plan, VLAN breakdown, software stack, flows matrix, and design rationale.
 
 ## 🧰 Tech stack
 
-**Hypervisor:** VMware Workstation Pro 25H2 <br>
-**Firewall / Router:** pfSense CE<br>
-**SIEM / XDR:** Wazuh 4.14.5 + Elasticsearch + Kibana <br>
-**Network IDS:** Suricata 8.0.4<br>
+**Hypervisor:** Proxmox VE 9.1.7 (UGA IM2AG infrastructure) <br>
+**Firewall / Router:** pfSense CE 2.7.2<br>
+**SIEM:** Wazuh 4.14.5 All-in-One (Manager + Indexer + Dashboard) <br>
+**Network IDS:** Suricata (pfSense package) with ETOpen ruleset<br>
 **Endpoint visibility:** Sysmon (with SwiftOnSecurity config) + Wazuh agent<br>
-**Vulnerable targets:** DVWA (web), hardened-down Ubuntu (SSH)<br>
-**Honeypots:** Cowrie (SSH deception alongside the real SSH target)<br>
+**Vulnerable targets:** DVWA (web, Docker), OpenSSH on port 2200 (weak credentials)<br>
+**Honeypot:** Cowrie SSH honeypot on port 22 (Docker)<br>
 **Adversary emulation:** Atomic Red Team, MITRE Caldera, Hydra, Impacket, BloodHound<br>
 **Case management (bonus):** TheHive 5<br>
 **Threat intel (bonus):** MISP<br>
@@ -121,7 +123,7 @@ soc-lab/
 | W2   | 18–24 May   | Detection layer      | Wazuh ingesting all logs, 10+ rules active |
 | W3   | 25–31 May   | Attack & investigate | 8 scenarios executed and documented        |
 | W4   | 1–8 June    | Deliverables         | Video + report + presentation ready        |
-|      | 9–11 June   | 🎓 Defense           | TER soutenance                             |
+|      | 9 June      | Defense              | TER soutenance                             |
 
 ## 📊 Key metrics
 
