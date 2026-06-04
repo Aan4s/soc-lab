@@ -2,7 +2,7 @@
 ![GitHub](https://img.shields.io/badge/status-in_progress-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Hypervisor](https://img.shields.io/badge/hypervisor-Proxmox%20VE%209.1-orange)
-![SIEM](https://img.shields.io/badge/SIEM-Wazuh%204.x-purple)
+![SIEM](https://img.shields.io/badge/SIEM-Wazuh%204.14-purple)
 > A fully virtualized Security Operations Center (SOC) lab built from scratch to learn, demonstrate, and operate end-to-end detection capabilities — from log ingestion to incident response, with realistic attack surfaces and honeypots.
 
 **Started:** May 2026 | **Author:** Anass CHAMMAMI — Master 1 Cybersecurity, UGA IM2AG
