@@ -1,0 +1,9 @@
+<!-- Cowrie honeypot custom decoder -->
+<decoder name="cowrie">
+  <prematch>"eventid":"cowrie\.</prematch>
+</decoder>
+
+<decoder name="cowrie-fields">
+  <parent>cowrie</parent>
+  <plugin_decoder>JSON_Decoder</plugin_decoder>
+</decoder>

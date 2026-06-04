@@ -1,0 +1,7 @@
+root:x:!root
+root:x:!toor
+root:x:*
+admin:x:*
+oracle:x:*
+ubuntu:x:*
+pi:x:*

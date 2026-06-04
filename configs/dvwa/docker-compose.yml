@@ -1,0 +1,37 @@
+services:
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: dvwa
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - dvwa-db
+    environment:
+      - DB_SERVER=dvwa-db
+      - DB_DATABASE=dvwa
+      - DB_USERNAME=dvwa
+      - DB_PASSWORD=p@ssw0rd
+    networks:
+      - dvwa-net
+
+  dvwa-db:
+    image: mariadb:10.6
+    container_name: dvwa-db
+    restart: unless-stopped
+    environment:
+      - MARIADB_ROOT_PASSWORD=rootpass
+      - MARIADB_DATABASE=dvwa
+      - MARIADB_USER=dvwa
+      - MARIADB_PASSWORD=p@ssw0rd
+    volumes:
+      - dvwa-db-data:/var/lib/mysql
+    networks:
+      - dvwa-net
+
+networks:
+  dvwa-net:
+    driver: bridge
+
+volumes:
+  dvwa-db-data:

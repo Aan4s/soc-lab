@@ -1,0 +1,13 @@
+services:
+  cowrie:
+    image: cowrie/cowrie:latest
+    container_name: cowrie
+    restart: unless-stopped
+    ports:
+      - "22:2222"
+      - "2323:2223"
+    volumes:
+      - ./etc:/cowrie/cowrie-git/etc
+      - ./var:/cowrie/cowrie-git/var
+    environment:
+      - COWRIE_TELNET_ENABLED=yes
