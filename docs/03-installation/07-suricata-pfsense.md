@@ -82,7 +82,7 @@ On the Wazuh server (`10.10.40.50`), edit `/var/ossec/etc/ossec.conf` and append
   <connection>syslog</connection>
   <port>514</port>
   <protocol>udp</protocol>
-  <allowed-ips>10.10.10.0/24</allowed-ips>
+  <allowed-ips>10.10.10.1</allowed-ips>
   <local_ip>10.10.40.50</local_ip>
 </remote>
 ```
