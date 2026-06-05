@@ -82,7 +82,7 @@ On the Wazuh server (`10.10.40.50`), edit `/var/ossec/etc/ossec.conf` and append
   <connection>syslog</connection>
   <port>514</port>
   <protocol>udp</protocol>
-  <allowed-ips>10.10.10.1</allowed-ips>
+  <allowed-ips>10.10.40.1</allowed-ips>
   <local_ip>10.10.40.50</local_ip>
 </remote>
 ```
@@ -95,7 +95,7 @@ sudo ss -lnup | grep ':514 '
 # udp UNCONN ... 10.10.40.50:514
 ```
 
-> The `<allowed-ips>` value matches the pfSense LAN interface IP (`10.10.10.1`). Syslog from any other source will be silently dropped.
+> The `<allowed-ips>` value is the pfSense SOC-side interface IP (`10.10.40.1`) — that's the source address pfSense uses when forwarding syslog to the manager on VLAN 40
 
 ## 7. Deploy the Suricata decoder + rules
 
