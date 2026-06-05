@@ -48,3 +48,39 @@
   </rule>
 
 </group>
+
+<group name="suricata,ids,nids,">
+
+ <!-- Rule 100200 - Suricata EVE alert catch-all                       -->
+  <rule id="100200" level="5">
+    <decoded_as>pfsense-suricata</decoded_as>
+    <description>Suricata: $(signature) from $(src_ip)</description>
+    <group>suricata_alert,nids,</group>
+  </rule>
+
+  <!-- Rule 100201 - Recon / scan / Nmap                                 -->
+  <rule id="100201" level="8">
+    <if_sid>100200</if_sid>
+    <field name="signature">SCAN|Nmap|scan|nmap</field>
+    <description>Suricata RECON: $(signature) from $(src_ip)</description>
+    <mitre><id>T1595</id></mitre>
+    <group>recon,scan,attack,</group>
+  </rule>
+
+  <!-- Rule 100202 - Web attack (SQLi, XSS)                              -->
+  <rule id="100202" level="10">
+    <if_sid>100200</if_sid>
+    <field name="signature">SQL|UNION|injection|XSS|WEB_SPECIFIC|WEB_SERVER</field>
+    <description>Suricata WEB ATTACK: $(signature) from $(src_ip)</description>
+    <mitre><id>T1190</id></mitre>
+    <group>web_attack,attack,</group>
+  </rule>
+
+  <!-- Rule 100203 - High priority                                       -->
+  <rule id="100203" level="7">
+    <if_sid>100200</if_sid>
+    <description>Suricata ALERT: $(signature) from $(src_ip)</description>
+    <group>suricata_alert_generic,</group>
+  </rule>
+
+</group>

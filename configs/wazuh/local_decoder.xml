@@ -1,4 +1,6 @@
-<!-- Cowrie honeypot custom decoder -->
+<!-- ================================================================== -->
+<!-- Cowrie honeypot - JSON events via Wazuh agent on DMZ              -->
+<!-- ================================================================== -->
 <decoder name="cowrie">
   <prematch>"eventid":"cowrie\.</prematch>
 </decoder>
@@ -6,4 +8,19 @@
 <decoder name="cowrie-fields">
   <parent>cowrie</parent>
   <plugin_decoder>JSON_Decoder</plugin_decoder>
+</decoder>
+
+<!-- ================================================================== -->
+<!-- Suricata via pfSense remote syslog (EVE JSON)                     -->
+<!-- Parent: prematch only                                              -->
+<!-- Child: single regex extracts src_ip and signature                  -->
+<!-- ================================================================== -->
+<decoder name="pfsense-suricata">
+  <prematch>"event_type":"alert"</prematch>
+</decoder>
+
+<decoder name="pfsense-suricata-extract">
+  <parent>pfsense-suricata</parent>
+  <regex type="pcre2">"src_ip":"(\S+?)".*?"signature":"([^"]+)"</regex>
+  <order>src_ip,signature</order>
 </decoder>
