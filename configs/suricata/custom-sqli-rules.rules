@@ -1,0 +1,43 @@
+# Generic SQLi patterns (OWASP Top 10 A03)
+alert http any any -> any any (msg:"CUSTOM SQLI - UNION SELECT pattern detected"; flow:to_server,established;
+  content:"UNION"; nocase; content:"SELECT"; nocase; distance:0;
+  classtype:web-application-attack; sid:9000001; rev:2; metadata:mitre_attack_id T1190;)
+
+alert http any any -> any any (msg:"CUSTOM SQLI - Boolean-based blind (OR-based)"; flow:to_server,established;
+  content:"' OR "; nocase;
+  classtype:web-application-attack; sid:9000002; rev:2; metadata:mitre_attack_id T1190;)
+
+alert http any any -> any any (msg:"CUSTOM SQLI - Boolean-based blind (AND-based)"; flow:to_server,established;
+  content:"' AND "; nocase;
+  classtype:web-application-attack; sid:9000003; rev:2; metadata:mitre_attack_id T1190;)
+
+alert http any any -> any any (msg:"CUSTOM SQLI - SQL comment injection"; flow:to_server,established;
+  content:"'"; content:"--"; distance:0; within:50;
+  classtype:web-application-attack; sid:9000004; rev:2; metadata:mitre_attack_id T1190;)
+
+# sqlmap-specific patterns (hex obfuscation, EXTRACTVALUE, SLEEP)
+alert http any any -> any any (msg:"CUSTOM SQLI - sqlmap hex obfuscation pattern"; flow:to_server,established;
+  content:"0x71"; depth:200;
+  classtype:web-application-attack; sid:9000005; rev:2; metadata:mitre_attack_id T1190;)
+
+alert http any any -> any any (msg:"CUSTOM SQLI - Error-based EXTRACTVALUE"; flow:to_server,established;
+  content:"EXTRACTVALUE"; nocase;
+  classtype:web-application-attack; sid:9000006; rev:2; metadata:mitre_attack_id T1190;)
+
+alert http any any -> any any (msg:"CUSTOM SQLI - Time-based blind SLEEP"; flow:to_server,established;
+  content:"SLEEP("; nocase;
+  classtype:web-application-attack; sid:9000007; rev:2; metadata:mitre_attack_id T1190;)
+
+# Post-exploitation enumeration
+alert http any any -> any any (msg:"CUSTOM SQLI - information_schema enumeration"; flow:to_server,established;
+  content:"information_schema"; nocase;
+  classtype:web-application-attack; sid:9000008; rev:2; metadata:mitre_attack_id T1190;)
+
+alert http any any -> any any (msg:"CUSTOM SQLI - Database enumeration (CONCAT)"; flow:to_server,established;
+  content:"CONCAT("; nocase;
+  classtype:web-application-attack; sid:9000009; rev:2; metadata:mitre_attack_id T1190;)
+
+# Tool fingerprint
+alert http any any -> any any (msg:"CUSTOM SQLI - sqlmap User-Agent detected"; flow:to_server,established;
+  content:"sqlmap"; nocase; http_user_agent;
+  classtype:web-application-attack; sid:9000010; rev:2; metadata:mitre_attack_id T1190;)
