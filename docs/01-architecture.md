@@ -4,8 +4,8 @@
 
 **Author:** Anass CHAMMAMI <br>
 **Project:** TER - Master 1 Cybersecurity, UGA IM2AG <br>
-**Status:** Design phase - POC validation pending <br>
-**Last updated:** May 2026 <br>
+**Status:** V1 deployed and validated on Proxmox VE <br>
+**Last updated:** June 2026 <br>
 
 ---
 
@@ -301,7 +301,7 @@ VLAN 40 is the **operational heart of the project**: where the SIEM, the IDS, an
 
 The decision to **separate the Wazuh Manager from the Elastic Stack** (rather than the Wazuh all-in-one deployment) reflects a production-style architecture. In real deployments, the SIEM correlation engine and the search backend scale independently and have very different resource profiles. Keeping them in separate VMs in the lab mirrors that reality and makes it possible to apply realistic tuning.
 
-Suricata runs in its own VM and receives a **mirrored copy** of network traffic. In a production environment this is achieved via a SPAN port on a managed switch; in this lab, it is implemented through VMware's network promiscuity settings on the dedicated `VMnet-SOC` interface. Suricata writes alerts to `eve.json`, which is then shipped to Wazuh via Filebeat, allowing all alerts (network and endpoint) to be correlated in a single pane of glass.
+In this V1, Suricata runs **directly on pfSense** (as a pfSense package) rather than in a dedicated VM, with **two independent instances**: one on the LAN-facing interface (`vtnet1`, attacker vantage point) and one on the DMZ-facing interface (`vtnet3`, victim vantage point). Each instance inspects traffic in-line on its interface — no separate SPAN/mirror port is needed because Suricata sees the routed traffic natively on the firewall. Alerts are forwarded as syslog (UDP/514) to the Wazuh manager, where a custom PCRE2 decoder extracts the source IP and signature, allowing network and endpoint alerts to be correlated in a single pane of glass.
 
 A common alternative is **the ELK Stack with Filebeat and Logstash** (without Wazuh). Wazuh was chosen over this approach because it provides out-of-the-box endpoint agents, file integrity monitoring, rootcheck, vulnerability detection, and a mature rule library — features that would require significant custom development on a pure ELK stack. The full justification of this choice appears in section 6.
 
@@ -343,21 +343,21 @@ The bonus TheHive + MISP stack is described as optional because its deployment, 
 
 This section describes each technology layer in the lab, including the specific version retained, the role it plays, and the alternatives that were considered.
 
-### 4.1 Hypervisor — VMware Workstation Pro 25H2
+### 4.1 Hypervisor — Proxmox VE 9.1.7
 
-**Role.** Hosts all virtual machines and provides the virtual networking layer (VMnets) that materializes the five logical zones of the architecture.
+**Role.** Hosts all virtual machines and provides the virtual networking layer (Linux bridges) that materializes the logical zones of the architecture.
 
-**Version.** Workstation Pro 25H2 (new calendar versioning, equivalent of the former 17.7.x branch). Free for personal and educational use since the November 2024 Broadcom policy change.
+**Version.** Proxmox VE 9.1.7, running on a shared UGA IM2AG node (`ProxProf-rapacchd-326`) with 24 GB RAM and 200 GB of storage on an LVM-thin pool.
 
-**Why this choice.** Three reasons. First, Workstation Pro is the industry-standard hypervisor on desktop, mirroring what is used in enterprise IT operations (with vSphere/ESXi as its server-side counterpart). Second, its virtual network editor allows creating multiple isolated host-only networks with per-subnet DHCP control, which is exactly what the architecture requires. Third, its snapshot system enables rapid rollback between architectural states — critical for an iterative project where misconfigurations are expected.
+**Why this choice.** Three reasons. First, Proxmox is a production-grade type-1 hypervisor (KVM/QEMU), which is closer to what is run in real datacenters than a desktop hypervisor — it mirrors enterprise virtualization practice. Second, its Linux-bridge networking model (`vmbr0`–`vmbr6`) maps cleanly onto the VLAN-per-bridge design the architecture requires, with no proprietary virtual-switch layer in between. Third, it was the infrastructure made available for the project on the university node, with web-based management and a robust snapshot system for rapid rollback between architectural states — critical for an iterative project where misconfigurations are expected.
 
 **Alternatives considered.**
 
+- *VMware Workstation / ESXi* — industry-standard but desktop-bound (Workstation) or licensing-heavy (ESXi); not the infrastructure provided for this project.
 - *VirtualBox* — free and simpler, but its networking is more limited (no fine-grained DHCP per host-only network) and its performance is noticeably lower at this VM count.
-- *Hyper-V* — Windows-native, but conflicts with Workstation Pro on the same host and is less natural for mixed Linux/Windows fleets.
-- *Proxmox* — production-grade hypervisor, but requires a dedicated host and a different operational mindset (web-based, no desktop integration).
+- *Hyper-V* — Windows-native, but ties the lab to a Windows host and is less natural for a Linux-only fleet.
 
-Workstation Pro offers the best balance for a single-host lab targeting an SOC analyst skill profile.
+Proxmox offers the best balance for a server-hosted lab on the university infrastructure, and its operational model (web UI, Linux bridges, KVM) is directly relevant to an SOC analyst skill profile.
 
 ### 4.2 Firewall and router — pfSense CE 2.7
 
@@ -598,7 +598,7 @@ Aligning the lab's incident response workflow (modeled in the UML activity diagr
 
 ### 7.1 Per-VM resource allocation
 
-The total resource budget is constrained by the physical host (64 GB RAM in the target deployment). The following allocation has been validated as feasible while leaving headroom for the host OS and VMware overhead.
+The total resource budget is constrained by the Proxmox node made available for the project (24 GB RAM, 200 GB LVM-thin storage). The V1 scope is deliberately bounded to **five Linux VMs** that fit comfortably within this envelope; the Windows/AD VMs below are listed as **planned (future work)** rather than deployed.
 
 | VM | vCPU | RAM | Disk | Reasoning |
 |----|------|-----|------|-----------|
@@ -618,7 +618,7 @@ The total resource budget is constrained by the physical host (64 GB RAM in the 
 | TheHive + MISP (bonus) | 4 | 6 GB | 60 GB | Two Java applications + databases |
 | **Total (with bonus)** | **32 vCPU** | **54 GB** | **580 GB** | |
 
-The 54 GB of RAM at peak utilization leaves approximately 10 GB for the host operating system and VMware overhead, which is sufficient. The 32 vCPU allocation is **oversubscribed** relative to a typical 8-core physical CPU, but this is acceptable: VMs are rarely all CPU-active simultaneously, and VMware's scheduler handles contention gracefully.
+In the V1 deployment, only the five Linux VMs run concurrently — pfSense, Wazuh AIO, the DMZ host, Kali, and the analyst desktop — for a working footprint of roughly 16–18 GB, leaving headroom on the 24 GB node for the Proxmox host itself. The vCPU allocation is **oversubscribed** relative to the node's physical cores, but this is acceptable: VMs are rarely all CPU-active simultaneously, and the KVM scheduler handles contention gracefully.
 
 ### 7.2 Expected processing capacity
 
@@ -641,7 +641,7 @@ These figures are conservative and well within Wazuh's documented capacity (a si
 Three optimizations are available if performance becomes constrained during the project:
 
 1. **Selective VM shutdown.** When working on a specific scenario, only the relevant VMs need to run. For example, the Kerberoasting scenario only requires pfSense, the DC, one Windows 10 client, Kali, Wazuh, and Elastic — about 30 GB of RAM. The DMZ and analyst VMs can be temporarily shut down.
-2. **Linked clones.** VMware Workstation supports linked clones, where multiple VMs share a base disk and only store their delta. For the two Windows 10 clients (which are nearly identical), this can save 30–40 GB of disk space.
+2. **Linked clones.** Proxmox supports linked clones, where a VM is derived from a template and only stores its delta against the base disk. For near-identical VMs, this saves significant disk space on the LVM-thin pool.
 3. **Snapshot management.** Snapshots accumulate disk usage over time. The convention adopted in this lab is to keep one "clean baseline" snapshot per VM and delete intermediate snapshots after each scenario, after the scenario report has been written and committed.
 
 ### 7.4 Thematic subsets for constrained environments
@@ -665,14 +665,14 @@ The architecture intentionally hosts vulnerable services and offensive tools. Th
 
 ### 8.1 Network isolation
 
-All five VLANs are implemented as **VMware host-only networks** (VMnet2 through VMnet6). Host-only networks have a critical property: they are not routable to any physical network interface. Traffic generated by any VM stays inside the host's virtual switch and is never seen on the LAN that the host is connected to.
+All VLANs are implemented as **isolated Linux bridges on Proxmox** (`vmbr2` through `vmbr6`). These bridges have no uplink to a physical interface, so traffic generated by any VM stays inside the host's virtual switching layer and is never seen on the physical LAN the node is connected to.
 
-The only exception is the WAN side of pfSense, which is bridged through VMware NAT (VMnet8) to provide Internet access for software updates, ISO downloads, and signature updates. **No inbound traffic** from the host's external network can reach the lab VMs.
+The only exception is the WAN side of pfSense, which is attached to a NAT-capable bridge (`vmbr1`) to provide Internet access for software updates, ISO downloads, and signature updates. **No inbound traffic** from the node's external network can reach the lab VMs.
 
 This dual property — outbound Internet allowed, inbound external traffic blocked — is enforced by two layers:
 
-1. The VMware NAT itself drops all unsolicited inbound connections.
-2. pfSense's WAN interface has no port-forwarding rules. Even if VMware NAT were misconfigured, the firewall would reject inbound traffic.
+1. The NAT layer on the WAN-facing bridge drops all unsolicited inbound connections.
+2. pfSense's WAN interface has no port-forwarding rules. Even if the NAT were misconfigured, the firewall would reject inbound traffic.
 
 ### 8.2 Compartmentalization of vulnerable services
 
@@ -702,11 +702,11 @@ The lab generates artifacts that could be sensitive if leaked (captured credenti
 
 ### 8.5 Host hardening
 
-The physical host machine running VMware should follow basic hardening practices:
+The physical node running Proxmox VE should follow basic hardening practices:
 
 - Full-disk encryption (LUKS for Linux, BitLocker for Windows).
 - Automatic screen lock on inactivity.
-- Up-to-date OS and VMware patches.
+- Up-to-date OS and Proxmox VE patches.
 - No unnecessary services exposed on the host's primary network interface.
 
 These practices are not specific to the lab but become non-negotiable when sensitive material may exist on the host (even temporarily).
@@ -738,7 +738,7 @@ The design assumes that the host machine has:
 
 It also assumes that the operator has:
 
-- **Local administrator rights** on the physical host (required for VMware installation and virtual network configuration).
+- **Administrative access** to the Proxmox node (required for VM creation and virtual bridge configuration).
 - **Time availability** equivalent to the academic project's full-time phase (~4 weeks for a complete deployment plus scenarios, plus documentation time).
 - **Foundational familiarity** with Linux command line, Windows administration, and basic networking concepts.
 

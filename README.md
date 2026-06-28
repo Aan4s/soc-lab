@@ -1,11 +1,11 @@
-# 🛡️ Home SOC Lab — Purple Team SIEM Environment
+# 🛡️ Home SOC Lab - Purple Team SIEM Environment
 ![GitHub](https://img.shields.io/badge/status-in_progress-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Hypervisor](https://img.shields.io/badge/hypervisor-Proxmox%20VE%209.1-orange)
 ![SIEM](https://img.shields.io/badge/SIEM-Wazuh%204.14-purple)
-> A fully virtualized Security Operations Center (SOC) lab built from scratch to learn, demonstrate, and operate end-to-end detection capabilities — from log ingestion to incident response, with realistic attack surfaces and honeypots.
+> A fully virtualized Security Operations Center (SOC) lab built from scratch to learn, demonstrate, and operate end-to-end detection capabilities, from log ingestion to incident response, with realistic attack surfaces and honeypots.
 
-**Started:** May 2026 | **Author:** Anass CHAMMAMI — Master 1 Cybersecurity, UGA IM2AG
+**Started:** May 2026 | **Author:** Anass CHAMMAMI - Master 1 Cybersecurity, UGA IM2AG
 
 ---
 
@@ -57,20 +57,20 @@ The goal is to **build, operate and document a complete SOC environment**, mirro
 
 | Tactic             | Technique                          | Detection source              | Status |
 |--------------------|------------------------------------|-------------------------------|--------|
-| Reconnaissance     | T1595 — Active Scanning            | Suricata + pfSense logs       | ⏳ |
-| Initial Access     | T1190 — Exploit Public App (DVWA)  | Suricata + Wazuh FIM          | ⏳ |
-| Initial Access     | T1110 — SSH Brute Force            | Wazuh auth.log + Cowrie       | ⏳ |
-| Execution          | T1059.004 — Unix Shell (web shell) | Wazuh process monitoring      | ⏳ |
-| Credential Access  | T1110 — RDP / SMB Brute Force      | Windows Event 4625            | ⏳ |
-| Credential Access  | T1558.003 — Kerberoasting          | Windows Event 4769            | ⏳ |
-| Credential Access  | T1552.004 — Private Keys (SSH)     | Wazuh FIM on ~/.ssh           | ⏳ |
-| Discovery          | T1087 — Account Discovery          | Sysmon process creation       | ⏳ |
-| Lateral Movement   | T1021 — Remote Services (PsExec)   | Sysmon + Wazuh                | ⏳ |
-| Persistence        | T1136 — Create Account             | Event 4720                    | ⏳ |
-| Defense Evasion    | T1070.001 — Clear Windows logs     | Event 1102                    | ⏳ |
-| Exfiltration       | T1041 — Exfil over C2              | Suricata                      | ⏳ |
-| C2                 | T1071.001 — Web protocols          | Suricata + Wazuh              | ⏳ |
-| Deception          | Honeypot interaction               | Cowrie → Wazuh                | ⏳ |
+| Reconnaissance     | T1595 — Active Scanning            | Suricata + pfSense logs       | ✅ Done (scenario 01) |
+| Initial Access     | T1190 — Exploit Public App (DVWA)  | Suricata + Wazuh custom rule          | ✅ Done (scenario 03) |
+| Credential Access     | T1110 — SSH Brute Force            | Wazuh auth.log + Cowrie       | ✅ Done (scenario 02) |
+| Initial Access          | T1078 — Valid Accounts (honeypot)              | Cowrie → Wazuh                | ✅ Done (scenario 02) |
+| Deception          | Honeypot interaction               | Cowrie → Wazuh                | ✅ Done (scenario 02) |
+| Execution          | T1059 — Command/Scripting (Cowrie)            | Cowrie command capture               | ✅ Done (scenario 02) |
+| Execution          | T1059.004 — Unix Shell (web shell) | Wazuh process monitoring      | 🔜 Planned (scenario 04) |
+| Credential Access  | T1110 — RDP / SMB Brute Force      | Windows Event 4625            | 🗓️ Future work (AD scope) |
+| Credential Access  | T1558.003 — Kerberoasting          | Windows Event 4769            | 🗓️ Future work (AD scope) |
+| Lateral Movement   | T1021 — Remote Services (PsExec)   | Sysmon + Wazuh                | 🗓️ Future work (AD scope) |
+| Persistence        | T1136 — Create Account             | Event 4720                    | 🗓️ Future work (AD scope) |
+| Defense Evasion    | T1070.001 — Clear Windows logs     | Event 1102                    | 🗓️ Future work (AD scope) |
+| Exfiltration       | T1041 — Exfiltration over C2              | Suricata                      | 🗓️ Future work |
+| C2                 | T1071.001 — Web protocols          | Suricata               | 🗓️ Future work |
 
 ## 🎭 Attack scenarios (Purple Team)
 
@@ -112,7 +112,7 @@ soc-lab/
 ├── diagrams/                          # architecture diagrams 
 │   └── soc-lab-architecture.png
 └── reports/
-    └── final-report.md                # 6-page final report
+    └── final-report.md                
 ```
 
 ## 📅 Roadmap
@@ -121,17 +121,16 @@ soc-lab/
 |------|-------------|----------------------|--------------------------------------------|
 | W1   | 12–17 May   | Build infrastructure | Lab deployed, network segmented, AD live   |
 | W2   | 18–24 May   | Detection layer      | Wazuh ingesting all logs, 10+ rules active |
-| W3   | 25–31 May   | Attack & investigate | 8 scenarios executed and documented        |
+| W3   | 25–31 May   | Attack & investigate | Linux attack scenarios executed and documented       |
 | W4   | 1–8 June    | Deliverables         | Video + report + presentation ready        |
 |      | 9 June      | Defense              | TER soutenance                             |
 
 ## 📊 Key metrics
 
-- Number of detection rules written: `0 / 15`
-- MITRE ATT&CK techniques covered: `0 / 14`
-- Attack scenarios fully documented: `0 / 8`
-- Mean Time to Detect (MTTD) in simulated scenarios: `TBD`
-- Honeypot interactions captured: `TBD`
+- Custom detection rules written: `10` (Cowrie 100100–100105, Suricata 100200–100203)
+- MITRE ATT&CK techniques covered: `5` (T1595, T1190, T1110/T1110.001, T1078, T1059)
+- Attack scenarios fully documented: `3 / 8`
+- Detection layers operational: `3` (HIDS Wazuh agent, NIDS Suricata ×2, deception Cowrie)
 
 ## 📚 Documentation philosophy
 
@@ -148,7 +147,6 @@ Every component is documented as if a **new SOC analyst joins the team tomorrow*
 - Wazuh documentation — https://documentation.wazuh.com/
 - Sigma rules repository — https://github.com/SigmaHQ/sigma
 - Atomic Red Team — https://atomicredteam.io/
-- DetectionLab inspiration — https://github.com/clong/DetectionLab
 
 ## ⚠️ Disclaimer
 
