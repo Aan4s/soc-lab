@@ -467,6 +467,47 @@ Both pipelines deliver alerts in **under one second** end-to-end:
 | Attacker recognizes Cowrie via uid 9673 or `.dockerenv` and disconnects | No `cowrie.command.input` event | Tighten Cowrie's environment to remove the giveaway markers |
 | Attacker hits port 2200 only | No Cowrie events at all | Real sshd pipeline still catches it; that's why we have both |
 
+## 6. Incident response playbook (NIST SP 800-61)
+
+This playbook applies the four-phase incident response lifecycle of **NIST SP 800-61 Rev. 2** to an SSH brute-force incident with an unusual asset: a deception layer (Cowrie) that captures the attacker's credentials and post-login commands. It is written as a production runbook.
+
+**Incident classification.** Category: *Credential access / unauthorised access attempt*. Severity: **Medium** for the real sshd brute force (port 2200); **High** for the honeypot capture (port 22) because it proves a hands-on-keyboard adversary with confirmed malicious intent. NIST functional impact: *Low* (a deliberately weak service was hit); information impact: *None* (no real data on the honeypot); recoverability: *Regular*.
+
+### 6.1 Preparation
+
+- **Detection engineering.** Wazuh agent on the DMZ tailing both `journald` (real sshd) and `cowrie.json` (honeypot); built-in OSSEC rule `5763` (T1110) for sshd; custom Cowrie rules `100100`–`100105` deployed and version-controlled.
+- **Deception asset.** Cowrie deployed on port 22 with a controlled `userdb.txt` (rejects `root/*`, accepts `admin/oracle/ubuntu/pi`). Critically, **no legitimate user ever connects to port 22**, so every event there is malicious by construction — this eliminates the false-positive problem that buries most brute-force detection.
+- **Service hygiene baseline.** The three SSH endpoints are documented: `22` (Cowrie), `2200` (weak sshd — a known intentional liability), `2222` (hardened, key-only). The on-call analyst knows which is which.
+- **Runbook & access.** Account-lockout procedure, credential-rotation procedure, and DMZ host admin access pre-staged.
+
+### 6.2 Detection and analysis
+
+- **Triggers.** Real sshd: OSSEC `5763` (multiple authentication failures, T1110). Honeypot: `100103` (accepted login, T1078, level ≥ 10), `100105` (brute force, T1110.001), `100104` (command execution, T1059). 71 alerts for 31 connections.
+- **Triage — the decisive split:**
+  1. *Which surface was hit?* Port 2200 alerts = brute force against the real service; port 22 alerts = the attacker is in the honeypot. Both came from `10.10.10.51` — the same actor as scenario 01's recon.
+  2. *Did anyone succeed on the real sshd?* Check `journald` for an `Accepted password` from `10.10.10.51` on port 2200. **This is the highest-priority question** — a successful login on the real host is a genuine compromise.
+  3. *What did the honeypot capture?* Cowrie logs the **exact password** the attacker used and **every shell command** they typed. Extract these immediately — they are gold for scoping (e.g. did they try `wget` a payload? enumerate users? attempt persistence?).
+- **Scoping.** The captured commands reveal attacker intent and likely next moves. The captured password may be reused elsewhere — check whether it matches any real account (credential-stuffing risk). Pivot on `srcip:10.10.10.51` to tie this to the prior recon and any later web attack.
+- **Declaration.** Honeypot interaction alone = confirmed **malicious-actor incident** (intent is unambiguous). A successful login on the *real* sshd escalates to a **host-compromise incident**.
+
+### 6.3 Containment, eradication and recovery
+
+- **Short-term containment.** Block `10.10.10.51` at pfSense (`pfctl -t blocklist -T add 10.10.10.51`). **Leave Cowrie running** during the engagement if intelligence value is high and isolation is sound — the honeypot is contained by design — but cut it if there is any risk of it being used as a pivot.
+- **If the real sshd was compromised (port 2200):**
+  - **Containment:** isolate the DMZ host from VLAN 30 east-west traffic; kill the attacker's session(s).
+  - **Eradication:** rotate the `admin` password immediately and **everywhere it may be reused**; remove any attacker-created accounts, SSH keys (`~/.ssh/authorized_keys`), cron jobs, or persistence found by reviewing the captured Cowrie command history as a guide to what they'd attempt; **disable password authentication** on the real sshd (move to key-only, as `2222` already is).
+  - **Recovery:** rebuild from a known-good image if persistence cannot be definitively ruled out (preferred over cleaning); restore service, then monitor.
+- **If only the honeypot was hit:** no host eradication needed. Reset Cowrie's filesystem/state to a clean snapshot, harvest the captured IOCs, and keep the source blocked.
+- **Recovery validation.** Confirm no `Accepted` events from the source on the real services; confirm the weak `admin/admin123` credential is retired; verify the Wazuh agent is still shipping both log sources.
+
+### 6.4 Post-incident activity
+
+- **Lessons learned.** The deception layer worked exactly as intended: it captured the attacker's password and commands that the real sshd could not. Record this as a strong control validation and a reusable IR pattern.
+- **Intelligence yield.** Turn the captured password, source IP, and command sequence into **IOCs/TTPs**: feed the IP to the blocklist, the commands into hunting queries across other hosts, and the password into a "known-burned-credentials" watchlist.
+- **Detection improvements.** Add correlation linking recon (scenario 01) → brute force from the same source within a time window, auto-raising severity. Consider alerting when a Cowrie-captured password matches any real directory account.
+- **Hardening.** Retire or further isolate the intentionally weak port-2200 service now that it has served its teaching purpose; enforce key-only auth on all real SSH endpoints; add fail2ban/rate-limiting on real services as defence-in-depth.
+- **Metrics.** Alerts (71), MTTD, MTTC, number of unique commands captured, whether the captured credential was reused anywhere real.
+  
 ---
 
 ← [`01-nmap-recon.md`](./01-nmap-recon.md) | **Next:** [`03-sqli-dvwa.md →`](./03-sqli-dvwa.md)

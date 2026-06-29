@@ -474,7 +474,55 @@ The custom rules and decoders themselves were not affected; only the syslog list
 | SQLi via a HTTPS endpoint without inspection | Suricata sees only TLS records | TLS termination + inspection (see § 5.6) |
 | SQLi from inside the DMZ network | No NIDS east-west | Add HIDS file integrity monitoring on DVWA's MySQL container |
 
+## 6. Incident response playbook (NIST SP 800-61)
 
+This playbook applies the four-phase incident response lifecycle of **NIST SP 800-61 Rev. 2** to a SQL-injection incident that resulted in **confirmed data exfiltration** (five user credentials dumped and cracked). It is written as a production runbook. Unlike scenarios 01–02, this incident crosses the line from *attempt* to *breach*, which changes the response posture significantly.
+
+**Incident classification.** Category: *Web application attack → data breach*. Severity: **High** — exfiltration of credentials completed. NIST functional impact: *Low* (DVWA itself is non-critical) but **information impact: Privacy Breach** (credentials extracted); recoverability: *Supplemented* (cracked credentials are now permanently burned and must be rotated). MITRE: T1190.
+
+### 6.1 Preparation
+
+- **Detection engineering.** Two Suricata sensors on pfSense with **10 custom SQLi rules** (`9000001`–`9000010`) authored specifically to close the gap left by ETOpen's free ruleset (which has **no generic SQLi signatures** — a finding documented in §3.1). Custom Wazuh decoder + escalation rule `100202` (level 10, T1190), version-controlled.
+- **Asset & data inventory.** DVWA is mapped as an internet-facing app on `10.10.30.50:80`; the `dvwa.users` table is known to hold credential hashes — i.e. the data at risk is identified *before* an incident, so impact can be assessed instantly.
+- **Baseline.** Normal request rate to the DVWA endpoint is characterised, so a burst of **~3 900 requests in 80 s (~48 req/s)** is unmistakably anomalous.
+- **Runbook & access.** WAF/firewall block templates, DVWA/Docker host admin access, database credential-rotation procedure, and the data-breach notification contact (DPO / privacy owner) are pre-staged — because a privacy breach has reporting obligations.
+
+### 6.2 Detection and analysis
+
+- **Trigger.** Wazuh rule `100202` (level 10, T1190) fires, fed by the custom Suricata SIDs; **331 alerts** captured (246 LAN + 127 DMZ). The single most prolific signature is the **sqlmap User-Agent fingerprint** (~80 % of hits) — tool identification, not payload analysis.
+- **Triage questions:**
+  1. *Attack volume and tool?* ~48 req/s + sqlmap UA = automated exploitation, not manual probing. This is an active campaign, treat as urgent.
+  2. *Did it progress past detection to extraction?* This is the critical question. Review the request sequence for the three escalation stages — vulnerability detection → enumeration (`information_schema`) → **dump of `dvwa.users`**. Presence of UNION/dump patterns and large response payloads indicates exfiltration **occurred**, not just attempted.
+  3. *What was taken?* If the `users` table was dumped, assume **all five credential hashes are compromised** and must be treated as cracked (they were).
+  4. *Same actor?* Source `10.10.10.51` ties this to the recon (01) and brute force (02) — one intrusion, escalating through the kill chain.
+- **Scoping.** Determine exactly which rows/tables were returned (correlate Suricata payload alerts with Apache/DVWA access logs and response sizes). Identify whether any dumped credential is **reused** on a real system — that is how a DVWA dump becomes a real-network foothold.
+- **Declaration.** Confirmed **data breach incident** with privacy impact. Engage the data-owner/DPO track in parallel with technical response.
+
+### 6.3 Containment, eradication and recovery
+
+- **Short-term containment (minutes matter — exfiltration completes in < 60 s):**
+  - Block the source at pfSense: `pfctl -t blocklist -T add 10.10.10.51`.
+  - Take the vulnerable endpoint offline or behind a deny rule (`http://10.10.30.50`) to stop further extraction.
+  - If a WAF is present, deploy a virtual-patch rule for the `id` parameter immediately.
+- **Eradication:**
+  - **Fix the root cause** — the SQL injection vulnerability itself. In DVWA this means raising the security level / using parameterised queries; in a real app, deploy the code fix (prepared statements, input validation) and confirm via re-test.
+  - Remove any attacker artefacts: SQLi rarely drops files, but verify no stacked-query writes, no new DB users, no `INTO OUTFILE` web-shell drop on the server.
+- **Recovery — the credential problem dominates:**
+  - **Rotate every credential in the dumped table** and anywhere those credentials may be reused. Cracked hashes are permanently burned; rotation is the only remedy.
+  - Force password reset for affected accounts; invalidate active sessions.
+  - Restore the database from a clean backup only if integrity was affected (a dump is read-only, so usually data is intact — the loss is confidentiality, not integrity).
+  - Bring the endpoint back online only after the vulnerability is patched and re-tested.
+- **Validation.** Re-run a controlled sqlmap probe to confirm the injection no longer succeeds; confirm rotated credentials; confirm both Suricata sensors + Wazuh pipeline healthy.
+
+### 6.4 Post-incident activity
+
+- **Lessons learned.** Two headline findings drive the review: (1) the **ETOpen coverage gap** for SQLi — without the 10 custom rules this attack would have been invisible at the network layer; (2) **80 % of detection came from tool fingerprinting (sqlmap UA)**, which is brittle — an attacker changing the UA would evade most hits, so payload-based rules must be strengthened.
+- **Detection improvements.** Reduce reliance on UA signatures; add **rate-based** alerting (N web-attack alerts from one source in M seconds → auto-escalate) so detection survives UA spoofing; tune the payload rules against false positives.
+- **Breach handling.** Complete the privacy-impact assessment; document what data left the environment; fulfil any notification obligations (in production this is a regulatory step, not optional).
+- **Hardening.** Code-level remediation (parameterised queries) as the durable fix; least-privilege DB account for the web app (so a future SQLi can't read the whole schema); consider a WAF in front of web tier as defence-in-depth.
+- **Kill-chain correlation.** This incident is the third stage from the same source (01 recon → 02 brute force → 03 SQLi). Record it as a single intrusion in the case management system and build the correlation rule that would have surfaced it as **one** escalating incident rather than three separate alerts.
+- **Metrics.** Alerts (331), exfiltration window, MTTD vs. the < 60 s exfiltration budget, credentials rotated, time-to-patch.
+- 
 ---
 
 ← [`02-ssh-bruteforce-deception.md`](./02-ssh-bruteforce-deception.md) | **Next:** [`04-web-shell.md →`](./04-web-shell.md)

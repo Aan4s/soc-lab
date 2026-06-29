@@ -262,6 +262,54 @@ End-to-end: alerts are in the SIEM **3+ seconds before the scan even finishes**.
 | Decoy scan, `nmap -D RND:10` | Real source IP buried among 10 spoofed ones | Cross-correlate with pfSense state table to identify the true initiator |
 | Idle / zombie scan, `-sI` | No direct packet from attacker IP | Flow-based detection (Zeek + anomaly model) — V2 scope |
 
+
+## 6. Incident response playbook (NIST SP 800-61)
+
+This playbook applies the four-phase incident response lifecycle of **NIST SP 800-61 Rev. 2** to a confirmed reconnaissance event. It is written as a production runbook: the actions below are what a real SOC would execute when alert `100201` fires, not merely what is possible inside the lab.
+
+**Incident classification.** Category: *Reconnaissance*. Severity: **Low–Medium** (no compromise, but a reliable precursor to exploitation). NIST functional impact: *None* yet; informational impact: *None*; recoverability: *Regular*.
+
+### 6.1 Preparation
+
+The controls that make this incident detectable and actionable must exist **before** the scan.
+
+- **Detection engineering.** Two Suricata sensors (`vtnet1` LAN-side, `vtnet3` DMZ-side) loaded with the ETOpen `emerging-scan.rules`; custom Wazuh decoder `pfsense-suricata-extract` and escalation rules `100200`/`100201` deployed and version-controlled in `configs/wazuh/local_rules.xml`.
+- **Asset inventory.** The DMZ host `10.10.30.50` and its authorised exposed ports (`22`, `80`, `2200`, `2222`) are documented, so an analyst can immediately tell a scan apart from legitimate service traffic.
+- **Baseline.** Normal east-west traffic VLAN 10 → VLAN 30 is characterised, so a burst of connections to many ports stands out.
+- **Runbook & contacts.** This document, the pfSense admin credentials, and the escalation path (SOC L1 → L2 → network owner) are stored where the on-call analyst can reach them.
+- **Tooling readiness.** Pre-built Wazuh "Threat Hunting" dashboard filter on `rule.id:100201`, and a saved pfSense `pfctl` block template.
+
+### 6.2 Detection and analysis
+
+- **Trigger.** Wazuh alert `100201` (level 8, T1595) fires within **< 1 s** of the scan, fed by Suricata signature `2024364 — ET SCAN Possible Nmap User-Agent Observed`.
+- **Triage questions the analyst answers:**
+  1. *Single source?* Confirm the source IP (`10.10.10.51`) — one origin or distributed.
+  2. *Internal or external?* `10.10.10.51` is VLAN 10 (internal attack subnet) — this is a host **already inside** the perimeter, which raises priority: it implies a prior compromise or a rogue device.
+  3. *Scope of the scan?* Cross-reference both sensors. Seeing the scan on **both** `vtnet1` and `vtnet3` (8 alerts: 4+4) confirms the traffic actually crossed the firewall and reached the DMZ — not a blocked attempt.
+  4. *What did they learn?* Correlate with the DMZ host: ports `22/80/3306` answered, so the attacker now has a service map.
+- **Scoping.** Pivot in Wazuh on `data.srcip:10.10.10.51` over the last 24 h to find any **other** activity from this host (e.g. follow-on brute force — scenario 02). A scan rarely travels alone.
+- **Declaration.** If the source is unexpected on VLAN 10, declare a confirmed **internal reconnaissance incident** and proceed to containment. If the source maps to a sanctioned vulnerability scanner, close as a **documented false positive** and tune.
+
+### 6.3 Containment, eradication and recovery
+
+- **Short-term containment.** Block the source at the firewall — drop all traffic from `10.10.10.51` to the DMZ:
+
+```bash
+  # pfSense (Diagnostics > Command Prompt, or floating rule)
+  pfctl -t blocklist -T add 10.10.10.51
+```
+Add a **floating deny rule** on the LAN interface for durability across reboots. This stops the recon from maturing into exploitation while investigation continues.
+- **Eradication.** Reconnaissance leaves no payload to remove on the target. Eradication here means dealing with the **source**: locate the physical/virtual host behind `10.10.10.51`, take it off the network, and image it for forensics. If it is a legitimate but compromised internal host, it becomes its own incident (the recon was a *symptom*).
+- **Recovery.** No service was altered, so there is nothing to restore on the DMZ. Recovery = lift the block only once the source host is cleared or rebuilt, then **monitor** that source for 48–72 h for recurrence. Confirm both Suricata sensors and the Wazuh pipeline are healthy (a scan during a sensor outage would be missed).
+
+### 6.4 Post-incident activity
+
+- **Lessons learned (within 1–2 weeks).** Did detection fire as designed (< 1 s, both sensors)? Yes — record it as a control validation. Was containment fast enough to precede exploitation?
+- **Detection improvements.** Consider a **threshold/correlation rule** that escalates severity when a recon alert from a source is followed by a brute-force or web-attack alert from the *same* source within N minutes (links scenarios 01 → 02 → 03 into a single incident).
+- **Hardening.** Re-examine why an unauthorised host could sit on VLAN 10 and reach the DMZ unimpeded — tighten east-west firewall rules to least-privilege, and consider NAC on the attack subnet.
+- **Metrics to record.** MTTD (`< 1 s`), MTTC (time to firewall block), alert volume (8), false-positive rate of rule `100201`.
+- **Evidence retention.** Archive the Suricata `eve.json` window, the Wazuh alerts, and the pfSense logs to the evidence store (outside the Git repo) per the retention policy.
+
 ---
 
 ← [`README.md`](./README.md) | **Next:** [`02-ssh-bruteforce-deception.md →`](./02-ssh-bruteforce-deception.md)
